@@ -1,19 +1,19 @@
 <script setup>
-import TheHeader from "@/components/TheHeader.vue";
-import ProductCard from "@/components/ProductCard.vue";
-import { useProductStore } from "@/stores/ProductStore";
-import { useCartStore } from "@/stores/CartStore";
-import AppButton from "@/components/AppButton.vue";
+import TheHeader from '@/components/TheHeader.vue';
+import ProductCard from '@/components/ProductCard.vue';
+import { useProductStore } from '@/stores/ProductStore';
+import { useCartStore } from '@/stores/CartStore';
+import AppButton from '@/components/AppButton.vue';
 const productStore = useProductStore();
 const cartStore = useCartStore();
 
 cartStore.$onAction(({ name, store, args, after, onError }) => {
-  if (name === "addItems") {
+  if (name === 'addItems') {
     after(() => {
       console.log(args[0]);
     });
     onError((error) => {
-      console.log("Hello error: ", error.message);
+      console.log('Hello error: ', error.message);
     });
   }
 });
@@ -32,8 +32,7 @@ productStore.fill();
         v-for="product in productStore.products"
         :key="product.name"
         :product="product"
-        @addToCart="cartStore.addItems($event, product)"
-      />
+        @addToCart="cartStore.addItems($event, product)" />
     </ul>
   </div>
 </template>
