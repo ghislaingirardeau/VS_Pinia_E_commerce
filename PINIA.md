@@ -154,6 +154,8 @@ permet de réinitialiser le store a son état d'origine. Dispo seulement en opti
 cardStore.$reset();
 ```
 
+**/!\ ne fonctionnera pas avec uselocalstorage**
+
 ### Getters
 
 Créer un getter dans le store pour récupérer le nombre total de produit dans le panier puis l'envoyer au cart widget
