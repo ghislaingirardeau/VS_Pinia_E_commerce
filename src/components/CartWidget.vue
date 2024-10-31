@@ -1,8 +1,8 @@
 <script setup>
 // imports
-import { ref } from "vue";
-import CartItem from "./CartItem.vue";
-import { useCartStore } from "@/stores/CartStore";
+import { ref } from 'vue';
+import CartItem from './CartItem.vue';
+import { useCartStore } from '@/stores/CartStore';
 const cartStore = useCartStore();
 
 // data
@@ -25,8 +25,7 @@ const active = ref(false);
             :product="items[0]"
             :count="cartStore.groupCount(name)"
             @updateCount="cartStore.setItemCount(items[0], $event)"
-            @clear="cartStore.clearItem(name)"
-          />
+            @clear="cartStore.clearItem(name)" />
         </ul>
         <div class="flex justify-end text-2xl mb-5">
           Total: <strong>${{ cartStore.total }}</strong>

@@ -92,6 +92,18 @@ const { name, doubleCount } = storeToRefs(store);
 const { increment } = store;
 ```
 
+#### Accès au store
+
+On peut accéder à toutes les propriétés du store importé dans le component grace à $state
+
+On pourrait alors réinitialiser les propriétés du store
+
+```js
+const store = useCounterStore();
+console.log(store.$state)
+store.$state = {nouvelle objet qui va remplacer tout le state}
+```
+
 #### Local data VS global data
 
 Uitiliser des data locales quand:
@@ -153,6 +165,8 @@ Comme dans un component, import le store, declare use... et on l'utilise
 
 ## Advanced
 
+### Hot module reload
+
 Pour eviter d'avoir à faire un refresh du browser à chaque fois que je travaille sur le store, on peut ajouter un module Hot reload
 https://pinia.vuejs.org/cookbook/hot-module-replacement.html
 
@@ -162,6 +176,96 @@ import { defineStore, acceptHMRUpdate } from 'pinia';
 if (import.meta.hot) {
   import.meta.hot.accept(acceptHMRUpdate(useCartStore, import.meta.hot));
 }
+```
+
+### Subscribe Action = watch
+
+permet de watch une action ou un state quand celui-ci est executer dans le store **equivalent à un watcher**
+
+Pour une action
+
+```js
+// Utilise la méthode onAction du store dans le component
+cartStore.$onAction(
+  ({
+    name, // nom de l'action dans le store à cibler
+    store, // le state
+    args, // les parametres envoyés à l'action
+    after, // la fonction éxécuter une fois que l'action est éxécuté dans sa totalité
+    onError, // si il y a une erreur dans l'action du store, on peut aussi la récupérer
+  }) => {
+    if (name === 'addItems') {
+      after((result) => {
+        // si l'action renvoie une promesse ou quelque chose, on peut récup le retour => se sera l'argument "result"
+        console.log(args[0]);
+      });
+      onError((error) => {
+        console.log('Hello error: ', error.message);
+      });
+    }
+  }
+);
+```
+
+### Subscribe State = watch / pour gérer un historique de state par exemple
+
+On peut aussi ajouter un watcher sur le state, à chaque fois qu'une donnée est changer à l'intérieur execute une callback
+
+**Cela peut etre utilise si on veut retourner à certain états du state: exemple avec une fonction de undo/redo**
+
+l'idée est d'avoir un historique des différents enregistrement dans le state (par exemple ajout de produit dans un panier). Au clique sur un "undo", le state reviendrait à son état précédent.
+
+```js
+const history = reactive([])
+const cartStore = useCartStore();
+const doingHistory = ref(false)
+
+cardStore.$subscribe(
+  (
+    mutation, // parametre qui decrit la mutation
+    state // parametre qui renvoie tout le state
+  ) => {
+    // Attends que la MAJ de history soit terminer avant de faire le push
+    if(!doingHistory.value) {
+      history.push(JSON.stringify(state))
+    }
+  }
+);
+
+undo() {
+  // ne va pas plus loin dans le undo, si history n'a qu'une seule valeur
+  if(history.length === 1) return
+  // est en train d'enregistrer l'histo
+  doingHistory.value = true
+
+  // retire le dernier etat du state
+  history.pop()
+  // réinitialise le state à l'history -1
+  cardStore.$state = JSON.parse(history.at(-1))
+  doingHistory.value = false
+
+}
+```
+
+### Pinia custom plugins (exemple avec undo et redo)
+
+Dans le dossier plugins, créer le fichier qui va nous servir de plugins et qui sera une fonction à exporter
+
+Pour utiliser le plugins: dans `main.js`
+
+```js
+import { PiniaHistoryPlugin } from '@/plugins/PiniaHistoryPlugin';
+
+const pinia = createPinia();
+pinia.use(PiniaHistoryPlugin);
+```
+
+### Local storage = vue use
+
+```js
+import { useLocalStorage } from '@vueuse/core';
+
+items: useLocalStorage('CartStore:items', []),
 ```
 
 ## Exo
@@ -182,3 +286,110 @@ Créer le cartStore:
 - dans le component :
   - productCart: emit addToCart envoie la quantité
   - app.vue: ajoute event addToCart dans <ProductCard> pour appeler cartStore.addItem, il faut alors importer cartStore également
+
+### Trie pour afficher un panier E-commerce
+
+Chaque produit est ajouter dans notre tableau, ce même si le produit est déjà présent. Or pourquoi ne pas ajouter une quantité à ce produit
+directement dans l'objet ?
+
+**Parce que souvent les produits ont une taille, une couleur...**
+
+Idée: on ajoute tous les produits un par un, mais on utilisera un getter pour afficher le rendu pour groupe de produit (ici par nom)
+
+Lodash fournit une méthode très pratique pour grouper une liste de produit par nom => `grouBy`:
+
+```js
+const grouped = groupBy(state.items, (item) => item.name);
+// renvoie un objet dont chaque propriété sera la clé servant à grouper (name)
+// chaque propriété sera un array, contenant les items groupé
+```
+
+### Widget
+
+Créer un widget au niveau de l'icone panier pour faire un rendu de la quantité totale d'article dans le panier
+
+### Reset du store & supprimer un produit
+
+Dans le card, ajouter la fonction pour vider le panier (utiliser $reset)
+
+Ajouter les fonctions pour supprimer un produit
+
+### Fonction Undo puis Redo
+
+_En 2 parties: 1-dans le component 2-dans un plugins dédié_
+
+Ajouter un bouton undo
+Ajouter un watcher sur le state (subscribe):
+Créer une variable history qui sera un array (qui contiendra un item à chaque changement du state)
+
+subscribe => dans la callback, a chaque fois que le state va changer, la fonction fera un push dans history
+
+Créer la fonction "undo" et son bouton
+
+undo => si history est de 1 return sinon tu supprimes le dernier élément du tableau et tu réinitialise le state
+du dernier element du array `history` => ($state)
+
+Redo idem
+Ajouter un bouton undo
+Créer une variable future qui sera un array (qui contiendra un item à chaque changement du state)
+
+Quand je clique sur undo => le dernier element de history sera push dans future
+
+Créer la fonction "redo" et son bouton
+
+- extrait le dernier element de redo
+- si pas d'element, tu ne fais rien
+- push cet element dans history (pour refaire le undo si besoin)
+- réinitialise le state avec ce dernier element
+
+**bug si on ajoute un nouveau element dans le panier**
+
+- dans la callback de subscribe => doit retirer de future le dernier element du tableau
+
+#### correction
+
+```js
+const history = reactive([])
+const futur = reactive([])
+
+const cartStore = useCartStore();
+const doingHistory = ref(false)
+
+cardStore.$subscribe(
+  (
+    mutation, // parametre qui decrit la mutation
+    state // parametre qui renvoie tout le state
+  ) => {
+    // Attends que la MAJ de history soit terminer avant de faire le push
+    if(!doingHistory.value) {
+      // ajoute dans hitorique
+      history.push(JSON.stringify(state))
+      // retire de futur (pour qu'il soit vide)
+      futur.splice(0, futur.length)
+    }
+  }
+);
+
+undo() => {
+  // ne va pas plus loin dans le undo, si history n'a qu'une seule valeur
+  if(history.length === 1) return
+  // est en train d'enregistrer l'histo
+  doingHistory.value = true
+  // retire le dernier etat du state history, mais ajout dans le futur (si redo)
+  futur.push(history.pop())
+
+  // réinitialise le state à l'history -1
+  cardStore.$state = JSON.parse(history.at(-1))
+  doingHistory.value = false
+
+}
+
+redo() => {
+  const lastest = futur.pop()
+  if(!lastest) return
+
+  history.push(lastest)
+  cardStore.$state = JSON.parse(lastest)
+
+}
+```

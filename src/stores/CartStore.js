@@ -1,13 +1,13 @@
-import { defineStore, acceptHMRUpdate } from "pinia";
-import { useLocalStorage } from "@vueuse/core";
-import { groupBy } from "lodash";
-import { useAuthUserStore } from "@/stores/AuthUserStore";
-export const useCartStore = defineStore("CartStore", {
-  historyEnabled: true,
+import { defineStore, acceptHMRUpdate } from 'pinia';
+import { useLocalStorage } from '@vueuse/core';
+import { groupBy } from 'lodash';
+import { useAuthUserStore } from '@/stores/AuthUserStore';
+export const useCartStore = defineStore('CartStore', {
+  historyEnabled: true, // pour signifier au plugins que seul ce store va renvoyer les fonctions undo et redo
   state: () => {
     return {
-      items: useLocalStorage("CartStore:items", []),
-      test: "hello world",
+      items: useLocalStorage('CartStore:items', []),
+      test: 'hello world',
     };
   },
   getters: {
@@ -15,9 +15,12 @@ export const useCartStore = defineStore("CartStore", {
     isEmpty: (state) => state.count === 0,
     grouped: (state) => {
       const grouped = groupBy(state.items, (item) => item.name);
+      console.log(grouped);
       const sorted = Object.keys(grouped).sort();
+      console.log(sorted);
       let inOrder = {};
       sorted.forEach((key) => (inOrder[key] = grouped[key]));
+      console.log(inOrder);
       return inOrder;
     },
     groupCount: (state) => (name) => state.grouped[name].length,
